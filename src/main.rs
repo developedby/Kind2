@@ -23,7 +23,7 @@ pub struct Cli {
 pub enum Command {
   /// Check a file
   #[clap(aliases = &["c"])]
-  Check { file: String },
+  Check { files: Vec<String> },
 
   /// Evaluates Main on Kind2
   #[clap(aliases = &["r"])]
@@ -75,8 +75,8 @@ fn run_cli() -> Result<(), String> {
       cmd_run_main(&path)
     }
 
-    Command::Check { file: path } => {
-      cmd_check_all(&path)
+    Command::Check { files: paths } => {
+      cmd_check_all(paths)
     }
 
     Command::Derive { file: path } => {
@@ -104,12 +104,19 @@ fn run_cli() -> Result<(), String> {
 // Commands
 // --------
 
-// Checks all definitions of a Kind2 file
-fn cmd_check_all(path: &str) -> Result<(), String> {
-  let loaded = load(path)?;
-  let result = run_with_hvm(&gen_checker(&loaded.book), "Kind.API.check_all", true)?;
-  print!("{}", inject_highlights(&loaded.file, &result.output));
-  println!("Rewrites: {}", result.rewrites);
+// Checks all definitions of multiple Kind2 files
+fn cmd_check_all(paths: Vec<String>) -> Result<(), String> {
+  fn check_file (path: &str) -> Result<(), String> {
+    println!("\x1b[1mFile: {}\x1b[0m", &path);
+    let loaded = load(path)?;
+    let result = run_with_hvm(&gen_checker(&loaded.book), "Kind.API.check_all", true)?;
+    print!("{}", inject_highlights(&loaded.file, &result.output));
+    println!("Rewrites: {}\n", result.rewrites);
+    Ok(())
+  }
+  for path in paths {
+    check_file(&path)?;
+  }
   Ok(())
 }
 
